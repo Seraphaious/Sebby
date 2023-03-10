@@ -1,30 +1,38 @@
-// Get the user ID at the start of the conversation
-const userId = "12345"; // Replace with actual user ID
+userMessage is the message the user sends, fairly self explanatory.
 
-// Generate a unique ID for each vector using the user ID and timestamp
-const generateId = (userId) => {
-  const timestamp = new Date().toISOString();
-  return `${userId}_${timestamp}`;
-};
+//Upsert
 
-// Define the lines of text to embed
-const linesBatch = ["Sample document text goes here", "there will be several phrases in each batch"];
+const userEmbedding = await openai.createEmbedding({
+        model: "text-embedding-ada-002",
+        input: userMessage,
+    });
+    const userEmbeddingData = userEmbedding.data.data[0].embedding;
+    const upsertRequest = {
+        vectors: [{
+            id: embeddingId,
+            values: userEmbeddingData,
+            metadata: { message: userMessage}
+        }],
+        namespace: sessionId,
+    };
+    const upsertResponse = await index.upsert({
+        upsertRequest
+    });
 
-// Create embeddings
-const res = await openai.embeddings.create({
-  engine: 'text-embedding-ada-002',
-  input: linesBatch,
-});
 
-// Extract embeddings to a list
-const embeds = res.data.map((record) => record.embedding);
+//Query
 
-// Prep metadata and upsert
-const metadata = linesBatch.map((text) => ({ message: text }));
-const toUpsert = embeds.map((embedding, i) => ({
-  vector: embedding,
-  id: generateId(userId),
-  metadata: { ...metadata[i], userId },
-}));
+    const queryRequest = {
+        vector: userEmbeddingData,
+        topK: 1,
+        includeValues: true,
+        includeMetadata: true,
+        namespace: sessionId,
+    }
 
-await index.upsert({ items: toUpsert });
+    const queryResult = await index.query({
+        queryRequest
+    })
+
+
+console.log(Object.keys(queryResponse[0]));
