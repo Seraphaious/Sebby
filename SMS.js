@@ -35,4 +35,8 @@ const userEmbedding = await openai.createEmbedding({
     })
 
 
-console.log(Object.keys(queryResponse[0]));
+if (queryResult && queryResult.length > 0) {
+  console.log(Object.keys(queryResult[0]));
+} else {
+  console.log("No matching vectors found");
+}
